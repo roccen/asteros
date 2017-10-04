@@ -1,0 +1,2 @@
+deb http://mirrors.163.com/debian/ jessie main contrib non-free
+deb http://mirrors.163.com/debian-security/ jessie/updates main contrib non-free

@@ -33,8 +33,11 @@ PASSWORD_ENCRYPTED=$2
 set -x -e
 
 ## docker engine version (with platform)
-DOCKER_VERSION=1.11.1-0~jessie_amd64
-
+DOCKER_VERSION=1.11.2-0~jessie_amd64
+#DOCKER_VERSION=1.13.1-0~debian-jessie_amd64
+#DOCKER_VERSION=17.03.1~ce-0~debian-jessie_amd64
+#DOCKER_VERSION=17.05.0~ce-0~debian-jessie_amd64
+#DOCKER_VERSION=17.09.0~ce-0~debian_amd64
 ## Working directory to prepare the file system
 FILESYSTEM_ROOT=./fsroot
 PLATFORM_DIR=platform
@@ -59,6 +62,7 @@ DEFAULT_USERINFO="Default admin user,,,"
 
 ## Prepare the file system directory
 if [[ -d $FILESYSTEM_ROOT ]]; then
+    #sudo umount $FILESYSTEM_ROOT/target
     sudo rm -rf $FILESYSTEM_ROOT || die "Failed to clean chroot directory"
 fi
 mkdir -p $FILESYSTEM_ROOT
@@ -67,7 +71,7 @@ touch $FILESYSTEM_ROOT/$PLATFORM_DIR/firsttime
 
 ## Build a basic Debian system by debootstrap
 echo '[INFO] Debootstrap...'
-sudo debootstrap --variant=minbase --arch amd64 jessie $FILESYSTEM_ROOT http://ftp.us.debian.org/debian
+sudo debootstrap --variant=minbase --arch amd64 jessie $FILESYSTEM_ROOT http://mirrors.163.com/debian
 
 ## Config hostname and hosts, otherwise 'sudo ...' will complain 'sudo: unable to resolve host ...'
 sudo LANG=C chroot $FILESYSTEM_ROOT /bin/bash -c "echo '$HOSTNAME' > /etc/hostname"
@@ -84,6 +88,8 @@ echo '[INFO] Mount all'
 mount
 trap_push 'sudo umount $FILESYSTEM_ROOT/proc || true'
 sudo LANG=C chroot $FILESYSTEM_ROOT mount proc /proc -t proc
+#sudo mkdir -p $FILESYSTEM_ROOT/target
+#sudo mount --bind taaaa $FILESYSTEM_ROOT/target
 
 ## Pointing apt to public apt mirrors and getting latest packages, needed for latest security updates
 sudo cp files/apt/sources.list $FILESYSTEM_ROOT/etc/apt/
@@ -91,7 +97,7 @@ sudo cp files/apt/apt.conf.d/{81norecommends,apt-{clean,gzip-indexes,no-language
 sudo LANG=C chroot $FILESYSTEM_ROOT bash -c 'apt-mark auto `apt-mark showmanual`'
 
 ## Note: set lang to prevent locale warnings in your chroot
-sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y update
+sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -o Acquire::Check-Valid-Until=false -y update
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y upgrade
 echo '[INFO] Install packages for building image'
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install makedev psmisc
@@ -105,12 +111,12 @@ sudo LANG=C chroot $FILESYSTEM_ROOT /bin/bash -c 'cd /dev && MAKEDEV generic'
 ## 2. mount supports squashfs
 ## However, 'dpkg -i' plus 'apt-get install -f' will ignore the recommended dependency. So
 ## we install busybox explicitly
-sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install busybox
+sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install -t jessie-backports busybox linux-base
 echo '[INFO] Install SONiC linux kernel image'
 ## Note: duplicate apt-get command to ensure every line return zero
 sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/initramfs-tools_*.deb || \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
-sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/linux-image-3.16.0-4-amd64_*.deb || \
+sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/linux-image-4.9.0-0.bpo.3-amd64_*.deb || \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 
 ## Update initramfs for booting with squashfs+aufs
@@ -139,24 +145,30 @@ sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/hooks/union-fsck
 sudo chroot $FILESYSTEM_ROOT update-initramfs -u
 
 ## Install latest intel igb driver
-sudo cp target/debs/igb.ko $FILESYSTEM_ROOT/lib/modules/3.16.0-4-amd64/kernel/drivers/net/ethernet/intel/igb/igb.ko
+sudo cp target/debs/igb.ko $FILESYSTEM_ROOT/lib/modules/4.9.0-0.bpo.3-amd64/kernel/drivers/net/ethernet/intel/igb/igb.ko
 
 ## Install docker
 echo '[INFO] Install docker'
 ## Install apparmor utils since they're missing and apparmor is enabled in the kernel
 ## Otherwise Docker will fail to start
-sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install apparmor
+sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install apparmor iptables init-system-helpers libltdl7
+sudo LANG=C chroot $FILESYSTEM_ROOT ls /var/run
 docker_deb_url=https://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_${DOCKER_VERSION}.deb
+#docker_deb_url=http://teraspek.net/files/docker-ce_${DOCKER_VERSION}.deb
 docker_deb_temp=`mktemp`
 trap_push "rm -f $docker_deb_temp"
 wget $docker_deb_url -qO $docker_deb_temp && {                                                  \
     sudo dpkg --root=$FILESYSTEM_ROOT -i $docker_deb_temp ||                                    \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f;   \
 }
+sudo LANG=C chroot $FILESYSTEM_ROOT ls /var/run
 ## Add docker config drop-in to select aufs, otherwise it may select other storage driver
 sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/docker.service.d/
 ## Note: $_ means last argument of last command
 sudo cp files/docker/docker.service.conf $_
+
+sudo mkdir -p $FILESYSTEM_ROOT/etc/docker/
+sudo cp files/docker/daemon.json $FILESYSTEM_ROOT/etc/docker/
 
 ## Create default user
 ## Note: user should be in the group with the same name, and also in sudo/docker group
@@ -173,7 +185,7 @@ sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install      \
 ## Note: parted is needed for partprobe in install.sh
 ## Note: ca-certificates is needed for easy_install
 ## Note: don't install python-apt by pip, older than Debian repo one
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
+while ! sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
     file                    \
     ifupdown                \
     iproute2                \
@@ -206,6 +218,9 @@ sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y in
     kexec-tools             \
     less                    \
     unzip
+do 
+    sleep 10
+done
 
 ## Disable kexec supported reboot which was installed by default
 sudo sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/' $FILESYSTEM_ROOT/etc/default/kexec
@@ -277,8 +292,8 @@ set /files/etc/sysctl.conf/net.core.rmem_max 2097152
 " -r $FILESYSTEM_ROOT
 
 ## docker-py is needed by Ansible docker module
-sudo LANG=C chroot $FILESYSTEM_ROOT easy_install pip
-sudo LANG=C chroot $FILESYSTEM_ROOT pip install 'docker-py==1.6.0'
+sudo LANG=C chroot $FILESYSTEM_ROOT easy_install -i http://mirrors.163.com/pypi/simple pip
+sudo LANG=C chroot $FILESYSTEM_ROOT pip install --trusted-host mirrors.163.com -i http://mirrors.163.com/pypi/simple 'docker-py==1.6.0'
 ## Note: keep pip installed for maintainance purpose
 
 ## Create /var/run/redis folder for docker-database to mount
@@ -328,6 +343,7 @@ sudo LANG=C chroot $FILESYSTEM_ROOT fuser -vm /proc
 ## Kill the processes
 sudo LANG=C chroot $FILESYSTEM_ROOT fuser -km /proc || true
 ## Wait fuser fully kill the processes
+#sudo umount $FILESYSTEM_ROOT/target || true
 sleep 15
 sudo umount $FILESYSTEM_ROOT/proc || true
 

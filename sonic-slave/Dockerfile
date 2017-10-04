@@ -1,12 +1,15 @@
 FROM debian:jessie
+ARG file_url
+ARG repos_url
+ARG sec_url
 
 MAINTAINER johnar@microsoft.com
 
-RUN echo "deb http://debian-archive.trafficmanager.net/debian/ jessie main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src http://debian-archive.trafficmanager.net/debian/ jessie main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb http://debian-archive.trafficmanager.net/debian-security/ jessie/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src http://debian-archive.trafficmanager.net/debian-security/ jessie/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo 'deb http://debian-archive.trafficmanager.net/debian jessie-backports main' >> /etc/apt/sources.list
+RUN echo "deb "$repos_url" jessie main contrib non-free" > /etc/apt/sources.list && \
+        echo "deb-src "$repos_url" jessie main contrib non-free" >> /etc/apt/sources.list && \
+        echo "deb "$sec_url" jessie/updates main contrib non-free" >> /etc/apt/sources.list && \
+        echo "deb-src "$sec_url" jessie/updates main contrib non-free" >> /etc/apt/sources.list && \
+	echo "deb "$repos_url" jessie-backports main" >> /etc/apt/sources.list 
 
 ## Make apt-get non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -200,14 +203,20 @@ RUN apt-get update && apt-get install -y \
         procmail \
 # For gtest
         libgtest-dev \
-        cmake
-
+        cmake \
+# For docker-ce
+	iptables \
+	libapparmor1
+	
 # For linux build
-RUN apt-get -y build-dep linux
+RUN apt-get -y install -t jessie-backports linux-image-amd64
+#RUN apt-get -y build-dep linux
+RUN apt-get -y build-dep linux-source-4.9
+RUN apt-get -y install -t jessie-backports linux-headers-4.9.0-0.bpo.3-all
 
 # For gobgp build
 RUN export VERSION=1.8.3 \
- && wget https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz \
+ && wget $file_url/go$VERSION.linux-amd64.tar.gz \
  && tar -C /usr/local -xzf go$VERSION.linux-amd64.tar.gz \
  && echo 'export GOROOT=/usr/local/go' >> /etc/bash.bashrc \
  && echo 'export PATH=$PATH:$GOROOT/bin' >> /etc/bash.bashrc
@@ -221,7 +230,7 @@ RUN pip install \
 RUN pip install j2cli
 
 # For sonic config engine testing
-RUN pip install pyangbind==0.5.10
+RUN pip install pyangbind
 
 # For supervisor build
 RUN pip install meld3 mock
@@ -235,22 +244,10 @@ RUN mkdir /var/run/sshd
 EXPOSE 22
 
 # Install depot-tools (for git-retry)
-RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git /usr/share/depot_tools
-ENV PATH /usr/share/depot_tools:$PATH
+#RUN git clone https://git.teraspek.com/scm/dep/depot_tools.git /usr/share/depot_tools
+#ENV PATH /usr/share/depot_tools:$PATH
 
 # Install docker engine 17.03.2~ce-0 inside docker and enable experimental feature
-RUN apt-get update
-RUN apt-get install -y \
-           apt-transport-https \
-           ca-certificates \
-           curl \
-           gnupg2 \
-           software-properties-common
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
-RUN add-apt-repository \
-           "deb [arch=amd64] https://download.docker.com/linux/debian \
-           $(lsb_release -cs) \
-           stable"
-RUN apt-get update
-RUN apt-get install -y docker-ce=17.03.2~ce-0~debian-jessie
+RUN wget $file_url/docker-engine_17.05.0~ce-0~debian-jessie_amd64.deb
+RUN dpkg -i docker-engine_17.05.0~ce-0~debian-jessie_amd64.deb
 RUN echo "DOCKER_OPTS=\"--experimental\"" >> /etc/default/docker

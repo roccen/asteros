@@ -64,17 +64,17 @@ sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y in
 # Install SONiC config engine Python package
 CONFIG_ENGINE_WHEEL_NAME=$(basename {{config_engine_wheel_path}})
 sudo cp {{config_engine_wheel_path}} $FILESYSTEM_ROOT/$CONFIG_ENGINE_WHEEL_NAME
-sudo LANG=C chroot $FILESYSTEM_ROOT pip install $CONFIG_ENGINE_WHEEL_NAME
+sudo LANG=C chroot $FILESYSTEM_ROOT pip install --trusted-host mirrors.163.com -i http://mirrors.163.com/pypi/simple $CONFIG_ENGINE_WHEEL_NAME
 sudo rm -rf $FILESYSTEM_ROOT/$CONFIG_ENGINE_WHEEL_NAME
 
 # Install Python client for Redis
-sudo LANG=C chroot $FILESYSTEM_ROOT pip install redis
-sudo LANG=C chroot $FILESYSTEM_ROOT pip install redis-dump-load
+sudo LANG=C chroot $FILESYSTEM_ROOT pip install --trusted-host mirrors.163.com -i http://mirrors.163.com/pypi/simple redis
+sudo LANG=C chroot $FILESYSTEM_ROOT pip install --trusted-host mirrors.163.com -i http://mirrors.163.com/pypi/simple redis-dump-load
 
 # Install SwSS SDK Python 2 package
 SWSSSDK_PY2_WHEEL_NAME=$(basename {{swsssdk_py2_wheel_path}})
 sudo cp {{swsssdk_py2_wheel_path}} $FILESYSTEM_ROOT/$SWSSSDK_PY2_WHEEL_NAME
-sudo LANG=C chroot $FILESYSTEM_ROOT pip install $SWSSSDK_PY2_WHEEL_NAME
+sudo LANG=C chroot $FILESYSTEM_ROOT pip install --trusted-host mirrors.163.com -i http://mirrors.163.com/pypi/simple $SWSSSDK_PY2_WHEEL_NAME
 sudo rm -rf $FILESYSTEM_ROOT/$SWSSSDK_PY2_WHEEL_NAME
 
 # Install SONiC Utilities (and its dependencies via 'apt-get -y install -f')
@@ -190,10 +190,14 @@ sudo rm -f $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
 
 ## copy platform rc.local
 sudo cp $IMAGE_CONFIGS/platform/rc.local $FILESYSTEM_ROOT/etc/
+#sudo chroot $FILESYSTEM_ROOT docker version
+#sudo chroot $FILESYSTEM_ROOT docker info
+#sudo chroot $FILESYSTEM_ROOT ls -l /var/run
+#sudo chroot $FILESYSTEM_ROOT service docker start
 
 {% if installer_images.strip() -%}
 {% for image in installer_images.strip().split(' ') -%}
-sudo LANG=C chroot $FILESYSTEM_ROOT docker load < {{image}}
+zcat {{image}} | sudo LANG=C chroot $FILESYSTEM_ROOT docker load 
 {% endfor %}
 sudo chroot $FILESYSTEM_ROOT service docker stop
 {% for script in installer_start_scripts.split(' ') -%}
