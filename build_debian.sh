@@ -33,11 +33,12 @@ PASSWORD_ENCRYPTED=$2
 set -x -e
 
 ## docker engine version (with platform)
-DOCKER_VERSION=1.11.2-0~jessie_amd64
+#DOCKER_VERSION=1.11.2-0~jessie_amd64
+#DOCKER_VERSION=1.12.3-0~jessie_amd64
 #DOCKER_VERSION=1.13.1-0~debian-jessie_amd64
 #DOCKER_VERSION=17.03.1~ce-0~debian-jessie_amd64
 #DOCKER_VERSION=17.05.0~ce-0~debian-jessie_amd64
-#DOCKER_VERSION=17.09.0~ce-0~debian_amd64
+DOCKER_VERSION=17.09.0~ce-0~debian_amd64
 ## Working directory to prepare the file system
 FILESYSTEM_ROOT=./fsroot
 PLATFORM_DIR=platform
@@ -86,10 +87,10 @@ sudo LANG=C chroot $FILESYSTEM_ROOT /bin/bash -c 'echo "sysfs /sys sysfs default
 echo '[INFO] Mount all'
 ## Output all the mounted device for troubleshooting
 mount
+trap_push 'sudo umount $FILESYSTEM_ROOT || true'
+sudo mount --bind $FILESYSTEM_ROOT $FILESYSTEM_ROOT
 trap_push 'sudo umount $FILESYSTEM_ROOT/proc || true'
 sudo LANG=C chroot $FILESYSTEM_ROOT mount proc /proc -t proc
-#sudo mkdir -p $FILESYSTEM_ROOT/target
-#sudo mount --bind taaaa $FILESYSTEM_ROOT/target
 
 ## Pointing apt to public apt mirrors and getting latest packages, needed for latest security updates
 sudo cp files/apt/sources.list $FILESYSTEM_ROOT/etc/apt/
@@ -153,8 +154,8 @@ echo '[INFO] Install docker'
 ## Otherwise Docker will fail to start
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install apparmor iptables init-system-helpers libltdl7
 sudo LANG=C chroot $FILESYSTEM_ROOT ls /var/run
-docker_deb_url=https://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_${DOCKER_VERSION}.deb
-#docker_deb_url=http://teraspek.net/files/docker-ce_${DOCKER_VERSION}.deb
+#docker_deb_url=https://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_${DOCKER_VERSION}.deb
+docker_deb_url=http://teraspek.net/files/docker-ce_${DOCKER_VERSION}.deb
 docker_deb_temp=`mktemp`
 trap_push "rm -f $docker_deb_temp"
 wget $docker_deb_url -qO $docker_deb_temp && {                                                  \
@@ -343,9 +344,9 @@ sudo LANG=C chroot $FILESYSTEM_ROOT fuser -vm /proc
 ## Kill the processes
 sudo LANG=C chroot $FILESYSTEM_ROOT fuser -km /proc || true
 ## Wait fuser fully kill the processes
-#sudo umount $FILESYSTEM_ROOT/target || true
 sleep 15
 sudo umount $FILESYSTEM_ROOT/proc || true
+sudo umount $FILESYSTEM_ROOT || true
 
 ## Prepare empty directory to trigger mount move in initramfs-tools/mount_loop_root, implemented by patching
 sudo mkdir $FILESYSTEM_ROOT/host
