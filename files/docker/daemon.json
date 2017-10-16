@@ -1,5 +1,6 @@
 
 {
-	"storage-driver":"aufs",
-	"debug": true
+	"storage-driver":"overlay2",
+	"debug": true,
+	"experimental":true
 }

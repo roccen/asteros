@@ -164,9 +164,9 @@ wget $docker_deb_url -qO $docker_deb_temp && {                                  
 }
 sudo LANG=C chroot $FILESYSTEM_ROOT ls /var/run
 ## Add docker config drop-in to select aufs, otherwise it may select other storage driver
-sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/docker.service.d/
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/docker.service.d/
 ## Note: $_ means last argument of last command
-sudo cp files/docker/docker.service.conf $_
+#sudo cp files/docker/docker.service.conf $_
 
 sudo mkdir -p $FILESYSTEM_ROOT/etc/docker/
 sudo cp files/docker/daemon.json $FILESYSTEM_ROOT/etc/docker/

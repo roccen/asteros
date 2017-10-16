@@ -457,7 +457,7 @@ if [ "$install_env" = "onie" ]; then
     # Store installation log in target file system
     rm -f $onie_initrd_tmp/tmp/onie-support.tar.bz2
     ${onie_bin} onie-support /tmp
-    mv $onie_initrd_tmp/tmp/onie-support.tar.bz2 $demo_mnt/$image_dir/
+    mv $onie_initrd_tmp/tmp/onie-support*.tar.bz2 $demo_mnt/$image_dir/
 
     if [ "$firmware" = "uefi" ] ; then
         demo_install_uefi_grub "$demo_mnt" "$blk_dev"
