@@ -2,10 +2,10 @@
 SHELL = /bin/bash
 .SHELLFLAGS += -e
 
-MAIN_TARGET = libteam5_$(LIBTEAM_VERSION)_amd64.deb
-DERIVED_TARGETS = libteam-dev_$(LIBTEAM_VERSION)_amd64.deb \
-		  libteamdctl0_$(LIBTEAM_VERSION)_amd64.deb \
-		  libteam-utils_$(LIBTEAM_VERSION)_amd64.deb
+MAIN_TARGET = libteam5_$(LIBTEAM_VERSION)_$(SONiC_ARCH).deb
+DERIVED_TARGETS = libteam-dev_$(LIBTEAM_VERSION)_$(SONiC_ARCH).deb \
+		  libteamdctl0_$(LIBTEAM_VERSION)_$(SONiC_ARCH).deb \
+		  libteam-utils_$(LIBTEAM_VERSION)_$(SONiC_ARCH).deb
 
 $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
 	# Obtain libteam

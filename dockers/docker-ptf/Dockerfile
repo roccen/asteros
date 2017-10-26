@@ -4,10 +4,7 @@ MAINTAINER Pavel Shirshov
 
 ## Copy dependencies
 COPY \
-{% for deb in docker_ptf_debs.split(' ') -%}
-debs/{{ deb }}{{' '}}
-{%- endfor -%}
-debs/
+debs/libthrift-0.9.3_0.9.3-2_arm64.deb debs/python-thrift_0.9.3-2_arm64.deb debs/python-ptf_0.9-1_all.deb debs/
 
 ## Make apt-get non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -46,9 +43,7 @@ RUN sed --in-place 's/httpredir.debian.org/mirrors.163.com/' /etc/apt/sources.li
         python-scapy
 
 RUN dpkg -i \
-{% for deb in docker_ptf_debs.split(' ') -%}
-debs/{{ deb }}{{' '}}
-{%- endfor %}
+debs/libthrift-0.9.3_0.9.3-2_arm64.deb debs/python-thrift_0.9.3-2_arm64.deb debs/python-ptf_0.9-1_all.deb 
 
 # Install all python modules from pypi. python-scapy is exception, ptf debian package requires python-scapy
 RUN rm -rf /debs \

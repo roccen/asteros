@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM aarch64/debian:jessie
 ARG file_url
 ARG repos_url
 ARG sec_url
@@ -121,9 +121,6 @@ RUN apt-get update && apt-get install -y \
         cpio \
         squashfs-tools \
         zip \
-# For broadcom sdk build
-        linux-compiler-gcc-4.8-x86 \
-        linux-kbuild-3.16 \
 # teamd build
         libdaemon-dev \
         libdbus-1-dev \
@@ -206,12 +203,13 @@ RUN apt-get update && apt-get install -y \
         cmake \
 # For docker-ce
 	iptables \
-	libapparmor1
+	libapparmor1 \
+	libseccomp2
 	
 # For linux build
 RUN apt-get -y install -t jessie-backports linux-image-arm64
 #RUN apt-get -y build-dep linux
-RUN apt-get -y build-dep linux-source-4.9
+RUN apt-get -y build-dep -t jessie-backports linux
 RUN apt-get -y install -t jessie-backports linux-headers-4.9.0-0.bpo.3-all
 
 # For gobgp build

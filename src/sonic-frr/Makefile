@@ -2,7 +2,7 @@
 SHELL = /bin/bash
 .SHELLFLAGS += -e
 
-MAIN_TARGET = frr_$(FRR_VERSION)_amd64.deb
+MAIN_TARGET = frr_$(FRR_VERSION)_$(SONiC_ARCH).deb
 
 $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
         # Cloning FRR repo if not already done

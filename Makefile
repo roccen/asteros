@@ -7,7 +7,7 @@ SHELL = /bin/bash
 USER := $(shell id -un)
 PWD := $(shell pwd)
 
-SONiC_ARCH = amd64
+SONiC_ARCH = arm64
 
 # Remove lock file in case previous run was forcefully stopped
 $(shell rm -f .screen)
@@ -27,7 +27,8 @@ DOCKER_RUN := docker run --rm=true --privileged \
 DOCKER_BASE_BUILD = docker build \
 		    --build-arg repos_url="http://mirrors.163.com/debian" \
 		    --build-arg sec_url="http://mirrors.163.com/debian-security" \
-		    --build-arg file_url="http://192.168.0.99/files" \
+		    --build-arg file_url="http://teraspek.net/files" \
+		    -f sonic-slave/Dockerfile.$(SONiC_ARCH) \
 		    -t $(SLAVE_BASE_IMAGE) \
 		    sonic-slave && \
 		    docker tag $(SLAVE_BASE_IMAGE):latest $(SLAVE_BASE_IMAGE):$(SLAVE_BASE_TAG)

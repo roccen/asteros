@@ -5,9 +5,9 @@ SHELL = /bin/bash
 REDIS_VERSION = 3.2.4
 REDIS_VERSION_FULL = $(REDIS_VERSION)-1~bpo8+1
 
-MAIN_TARGET = redis-server_$(REDIS_VERSION_FULL)_amd64.deb
-DERIVED_TARGETS = redis-tools_$(REDIS_VERSION_FULL)_amd64.deb \
-		  redis-sentinel_$(REDIS_VERSION_FULL)_amd64.deb
+MAIN_TARGET = redis-server_$(REDIS_VERSION_FULL)_$(SONiC_ARCH).deb
+DERIVED_TARGETS = redis-tools_$(REDIS_VERSION_FULL)_$(SONiC_ARCH).deb \
+		  redis-sentinel_$(REDIS_VERSION_FULL)_$(SONiC_ARCH).deb
 
 $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
 	wget -O redis_$(REDIS_VERSION).orig.tar.gz -N "https://sonicstorage.blob.core.windows.net/packages/redis_$(REDIS_VERSION).orig.tar.gz?sv=2015-04-05&sr=b&sig=B3qGEoSHe%2FBh5rVwvXHpKijgBtKF7dHeuJWp1p17UnU%3D&se=2026-11-26T22%3A31%3A31Z&sp=r"

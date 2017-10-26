@@ -38,7 +38,7 @@ set -x -e
 #DOCKER_VERSION=1.13.1-0~debian-jessie_amd64
 #DOCKER_VERSION=17.03.1~ce-0~debian-jessie_amd64
 #DOCKER_VERSION=17.05.0~ce-0~debian-jessie_amd64
-DOCKER_VERSION=17.09.0~ce-0~debian_amd64
+DOCKER_VERSION=17.09.0~ce-0~debian_arm64
 ## Working directory to prepare the file system
 FILESYSTEM_ROOT=./fsroot
 PLATFORM_DIR=platform
@@ -72,7 +72,7 @@ touch $FILESYSTEM_ROOT/$PLATFORM_DIR/firsttime
 
 ## Build a basic Debian system by debootstrap
 echo '[INFO] Debootstrap...'
-sudo debootstrap --variant=minbase --arch amd64 jessie $FILESYSTEM_ROOT http://mirrors.163.com/debian
+sudo debootstrap --variant=minbase --arch arm64 jessie $FILESYSTEM_ROOT http://mirrors.163.com/debian
 
 ## Config hostname and hosts, otherwise 'sudo ...' will complain 'sudo: unable to resolve host ...'
 sudo LANG=C chroot $FILESYSTEM_ROOT /bin/bash -c "echo '$HOSTNAME' > /etc/hostname"
@@ -102,7 +102,7 @@ sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -o Acquire::Check-Valid-Until=false 
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y upgrade
 echo '[INFO] Install packages for building image'
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install makedev psmisc
-
+sudo sed -i 's/armel/arm64/g' $FILESYSTEM_ROOT/sbin/MAKEDEV 
 ## Create device files
 echo '[INFO] MAKEDEV'
 sudo LANG=C chroot $FILESYSTEM_ROOT /bin/bash -c 'cd /dev && MAKEDEV generic'
@@ -117,7 +117,7 @@ echo '[INFO] Install SONiC linux kernel image'
 ## Note: duplicate apt-get command to ensure every line return zero
 sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/initramfs-tools_*.deb || \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
-sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/linux-image-4.9.0-0.bpo.3-amd64_*.deb || \
+sudo dpkg --root=$FILESYSTEM_ROOT -i target/debs/linux-image-4.9.0-0.bpo.3-arm64_*.deb || \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 
 ## Update initramfs for booting with squashfs+aufs
@@ -146,7 +146,7 @@ sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/hooks/union-fsck
 sudo chroot $FILESYSTEM_ROOT update-initramfs -u
 
 ## Install latest intel igb driver
-sudo cp target/debs/igb.ko $FILESYSTEM_ROOT/lib/modules/4.9.0-0.bpo.3-amd64/kernel/drivers/net/ethernet/intel/igb/igb.ko
+sudo cp target/debs/igb.ko $FILESYSTEM_ROOT/lib/modules/4.9.0-0.bpo.3-arm64/kernel/drivers/net/ethernet/intel/igb/igb.ko
 
 ## Install docker
 echo '[INFO] Install docker'
@@ -186,7 +186,7 @@ sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install      \
 ## Note: parted is needed for partprobe in install.sh
 ## Note: ca-certificates is needed for easy_install
 ## Note: don't install python-apt by pip, older than Debian repo one
-while ! sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
+sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
     file                    \
     ifupdown                \
     iproute2                \
@@ -216,13 +216,12 @@ while ! sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-g
     iptables-persistent     \
     logrotate               \
     curl                    \
-    kexec-tools             \
     less                    \
     unzip
-do 
-    sleep 10
-done
 
+## Instll kexec-tools since there is NO package on ARM64 for debian jessie
+sudo DEBIAN_FRONTEND=noninteractive dpkg --root=$FILESYSTEM_ROOT -i target/debs/kexec-tools_*.deb || \
+    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 ## Disable kexec supported reboot which was installed by default
 sudo sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/' $FILESYSTEM_ROOT/etc/default/kexec
 

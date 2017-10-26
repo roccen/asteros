@@ -2,9 +2,9 @@ This patch adds the following functionality to dhcrelay in isc-dhcp v4.3.1-6:
 * Add customizable Circuit ID and Remote ID fields
 * Support for obtaining name of physical interface of interfaces that are part of a bridge interface
 
-diff -ruN a/isc-dhcp/relay/dhcrelay.c b/isc-dhcp/relay/dhcrelay.c
---- a/isc-dhcp/relay/dhcrelay.c	2014-08-06 22:35:02.000000000 +0000
-+++ b/isc-dhcp/relay/dhcrelay.c	2017-06-08 21:39:53.856192546 +0000
+diff -ruN a/isc-dhcp-4.3.1/relay/dhcrelay.c b/isc-dhcp-4.3.1/relay/dhcrelay.c
+--- a/isc-dhcp-4.3.1/relay/dhcrelay.c	2014-08-06 22:35:02.000000000 +0000
++++ b/isc-dhcp-4.3.1/relay/dhcrelay.c	2017-06-08 21:39:53.856192546 +0000
 @@ -73,6 +73,8 @@
  				   did not match any known circuit ID. */
  int missing_circuit_id = 0;	/* Circuit ID option in matching RAI option

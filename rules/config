@@ -49,5 +49,7 @@ SONIC_ROUTING_STACK = quagga
 # Uncomment to enable:
 # ENABLE_SYNCD_RPC = y
 #
-SONiC_ARCH = amd64
+SONiC_ARCH = arm64
 export SONiC_ARCH
+repos_url="http://mirrors.163.com/debian"
+export repos_url
